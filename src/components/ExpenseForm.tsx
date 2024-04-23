@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import type { DraftExpense, Value } from "../types";
 import { categories } from "../data/categories";
 import DatePicker from "react-date-picker";
@@ -15,7 +15,16 @@ export default function ExpenseForm() {
     date: new Date(),
   });
   const [error, setError] = useState("");
-  const { dispatch } = useBudget();
+  const { state, dispatch } = useBudget();
+
+  useEffect(() => {
+    if (state.editingID) {
+      const editingExpense = state.expenses.filter(
+        (currentExpense) => currentExpense.id === state.editingID
+      )[0];
+      setExpense(editingExpense);
+    }
+  }, [state.editingID]);
 
   const handleChange = (
     e: ChangeEvent<HTMLInputElement> | ChangeEvent<HTMLSelectElement>
@@ -44,8 +53,15 @@ export default function ExpenseForm() {
       return;
     }
 
-    // Añadir nuevo gasto
-    dispatch({ type: "add-expense", payload: { expense } });
+    // Agregar o actualizar el gasto
+    if (state.editingID) {
+      dispatch({
+        type: "update-expense",
+        payload: { expense: { id: state.editingID, ...expense } },
+      });
+    } else {
+      dispatch({ type: "add-expense", payload: { expense } });
+    }
 
     // Reiniciar el state
     setExpense({ amount: 0, expenseName: "", category: "", date: new Date() });
@@ -54,7 +70,7 @@ export default function ExpenseForm() {
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
       <legend className="uppercase text-center text-2xl font-black border-b-4 border-blue-500 py-2">
-        Nuevo Gasto
+        {state.editingID ? "Editar Gasto" : "Nuevo Gasto"}
       </legend>
 
       {error && <ErrorMessage>{error}</ErrorMessage>}
@@ -121,7 +137,7 @@ export default function ExpenseForm() {
       <input
         type="submit"
         className="bg-blue-600 cursor-pointer w-full p-2 text-white uppercase font-bold rounded-lg"
-        value={"Registrar Gasto"}
+        value={state.editingID ? "Registrar Cambio" : "Registrar Gasto"}
       />
     </form>
   );
